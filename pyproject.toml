@@ -28,3 +28,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-datadir",
+    "pytest-xdist",
+]

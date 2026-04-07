@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
 
     - name: Install IPOPT
       shell: pwsh
@@ -33,14 +33,18 @@ jobs:
         echo "IPOPT_PATH=$ipoptPath" >> $env:GITHUB_ENV
         echo "$ipoptPath" >> $env:GITHUB_PATH 
 
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v6
       with:
         python-version: '3.11'
-        cache: 'pip' # caching pip dependencies
-    - run: |
-        pip install -e .
-        pip install pytest-xdist
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        enable-cache: true
+
+    - name: Install dependencies
+      run: |
+        uv sync --group dev
 
     - name: Run Tests
       run: |
-        pytest -n auto -vv
+        uv run pytest -n auto -vv
