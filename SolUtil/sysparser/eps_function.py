@@ -109,19 +109,19 @@ def load_mpc(file_name) -> Dict[str, Union[np.ndarray, csc_array]]:
     mpc['idx_pv'] = idx_pv
     idx_slack = np.asarray(bus[slack]['bus_i'])
     mpc['idx_slack'] = idx_slack
-    Vm = np.asarray(bus['Vm'])
+    Vm = np.asarray(bus['Vm'], dtype=float)
     mpc['Vm'] = Vm
-    Va = np.deg2rad(np.asarray(bus['Va']))
+    Va = np.deg2rad(np.asarray(bus['Va'], dtype=float))
     mpc['Va'] = Va
-    Pd = np.asarray(bus['Pd']) / baseMVA
+    Pd = np.asarray(bus['Pd'], dtype=float) / baseMVA
     mpc['Pd'] = Pd
-    Qd = np.asarray(bus['Qd']) / baseMVA
+    Qd = np.asarray(bus['Qd'], dtype=float) / baseMVA
     mpc['Qd'] = Qd
-    Pg = np.zeros((nb,))
+    Pg = np.zeros((nb,), dtype=float)
     idx_gen = np.asarray(gen['bus'])
     Pg[idx_gen] = gen['Pg'] / baseMVA
     mpc['Pg'] = Pg
-    Qg = np.zeros((nb,))
+    Qg = np.zeros((nb,), dtype=float)
     Qg[idx_gen] = gen['Qg'] / baseMVA
     mpc['Qg'] = Qg
     mpc['Ybus'] = makeYbus(baseMVA, bus, branch)
