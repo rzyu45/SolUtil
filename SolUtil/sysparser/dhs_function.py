@@ -5,6 +5,8 @@ import pandas as pd
 import networkx as nx
 from scipy.sparse import csc_array
 
+from ._array_utils import to_writable_array
+
 
 def load_hs(filename):
     df = pd.read_excel(filename,
@@ -14,24 +16,24 @@ def load_hs(filename):
                        )
     hc = dict()
 
-    type_node = np.asarray(df['node']['type'])
-    idx_node = np.asarray(df['node']['idx'])
-    idx_pipe = np.asarray(df['pipe']['idx'])
-    idx_from = np.asarray(df['pipe']['fnode'])
-    idx_to = np.asarray(df['pipe']['tnode'])
+    type_node = to_writable_array(df['node']['type'])
+    idx_node = to_writable_array(df['node']['idx'])
+    idx_pipe = to_writable_array(df['pipe']['idx'])
+    idx_from = to_writable_array(df['pipe']['fnode'])
+    idx_to = to_writable_array(df['pipe']['tnode'])
     I_node_cond = df['node']['type'] == 1
-    I_node = np.asarray(df['node'][I_node_cond]['idx'])
+    I_node = to_writable_array(df['node'][I_node_cond]['idx'])
     hc['I_node'] = I_node
     s_node_cond = df['node']['type'] == 0
-    s_node = np.asarray(df['node'][s_node_cond]['idx'])
+    s_node = to_writable_array(df['node'][s_node_cond]['idx'])
     hc['s_node'] = s_node
     l_node_cond = df['node']['type'] == 2
-    l_node = np.asarray(df['node'][l_node_cond]['idx'])
+    l_node = to_writable_array(df['node'][l_node_cond]['idx'])
     hc['l_node'] = l_node
     if len(l_node) == 0:
         warnings.warn('No DHS load node!')
     slack_node_cond = df['node']['type'] == 3
-    slack_node = np.asarray(df['node'][slack_node_cond]['idx'])
+    slack_node = to_writable_array(df['node'][slack_node_cond]['idx'])
     hc['slack_node'] = slack_node
     n_node = len(df['node'])
     hc['n_node'] = n_node
@@ -41,30 +43,30 @@ def load_hs(filename):
     hc['non_slack_nodes'] = non_slack_nodes
 
     if 'delta' in df['node'].columns:
-        delta_node = np.asarray(df['node']['delta'])
+        delta_node = to_writable_array(df['node']['delta'])
     else:
         delta_node = np.zeros(n_node)
     hc['delta_node'] = delta_node
 
     if 'delta' in df['pipe'].columns:
-        delta_pipe = np.asarray(df['pipe']['delta'])
+        delta_pipe = to_writable_array(df['pipe']['delta'])
     else:
         delta_pipe = np.zeros(n_pipe)
     hc['delta_pipe'] = delta_pipe
 
     # loop detection and conversion
     if 'loop' in df:
-        hc['pinloop'] = np.asarray(df['loop']['loop1'])
+        hc['pinloop'] = to_writable_array(df['loop']['loop1'])
     else:
         hc['pinloop'] = np.zeros(n_pipe)
 
-    lam = np.asarray(df['pipe']['lambda (W/mK)'])
-    D = np.asarray(df['pipe']['D (mm)']) / 1000
-    Ts = np.array(df['node']['Ts'])
-    Tr = np.array(df['node']['Tr'])
-    L = np.asarray(df['pipe']['L (m)'])
+    lam = to_writable_array(df['pipe']['lambda (W/mK)'])
+    D = to_writable_array(df['pipe']['D (mm)']) / 1000
+    Ts = to_writable_array(df['node']['Ts'])
+    Tr = to_writable_array(df['node']['Tr'])
+    L = to_writable_array(df['pipe']['L (m)'])
     S = np.pi * (D / 2) ** 2
-    m = np.asarray(df['pipe']['Massflow (kg/s)'])
+    m = to_writable_array(df['pipe']['Massflow (kg/s)'])
     hc['m'] = m
 
     density = 958.4
@@ -134,12 +136,12 @@ def load_hs(filename):
     hc['Tr'] = Tr
     hc['L'] = L
     hc['S'] = S
-    hc['Ta'] = np.asarray(df['setting']['Ta'])
-    hc['Tsource'] = np.asarray(df['setting']['Tsource'])
-    hc['Tload'] = np.asarray(df['setting']['Tload'])
-    hc['phi'] = np.asarray(df['node']['phi (MW)'], dtype=float)
+    hc['Ta'] = to_writable_array(df['setting']['Ta'])
+    hc['Tsource'] = to_writable_array(df['setting']['Tsource'])
+    hc['Tload'] = to_writable_array(df['setting']['Tload'])
+    hc['phi'] = to_writable_array(df['node']['phi (MW)'], dtype=float)
     if 'Hset' in df['node']:
-        hc['Hset'] = np.asarray(df['node']['Hset'][slack_node])
+        hc['Hset'] = to_writable_array(df['node']['Hset'][slack_node])
     else:
         hc['Hset'] = np.zeros(slack_node.shape[0])
 

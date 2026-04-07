@@ -3,6 +3,8 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
+from ._array_utils import to_writable_array
+
 
 def visualize_ngs(G: nx.DiGraph):
     virtual_pipe = [(u, v) for (u, v, d) in G.edges(data=True) if d["type"] == 0]
@@ -36,22 +38,22 @@ def load_ngs(filename):
                        )
     gc = dict()
 
-    type_node = np.asarray(df['node']['type'])
-    type_pipe = np.asarray(df['pipe']['type'])
-    idx_node = np.asarray(df['node']['idx'])
-    idx_pipe = np.asarray(df['pipe']['idx'])
-    idx_from = np.asarray(df['pipe']['fnode'])
-    compress_fac = np.asarray(df['pipe']['Compress factor'])
+    type_node = to_writable_array(df['node']['type'])
+    type_pipe = to_writable_array(df['pipe']['type'])
+    idx_node = to_writable_array(df['node']['idx'])
+    idx_pipe = to_writable_array(df['pipe']['idx'])
+    idx_from = to_writable_array(df['pipe']['fnode'])
+    compress_fac = to_writable_array(df['pipe']['Compress factor'])
     gc['compress_fac'] = compress_fac
-    idx_to = np.asarray(df['pipe']['tnode'])
+    idx_to = to_writable_array(df['pipe']['tnode'])
     ns_node_cond = df['node']['type'] == 1
-    ns_node = np.asarray(df['node'][ns_node_cond]['idx'])
+    ns_node = to_writable_array(df['node'][ns_node_cond]['idx'])
     gc['ns_node'] = ns_node
     s_node_cond = df['node']['type'] != 1
-    s_node = np.asarray(df['node'][s_node_cond]['idx'])
+    s_node = to_writable_array(df['node'][s_node_cond]['idx'])
     gc['s_node'] = s_node
     slack_cond = df['node']['type'] == 3
-    slack_node = np.asarray(df['node'][slack_cond]['idx'])
+    slack_node = to_writable_array(df['node'][slack_cond]['idx'])
     non_slack_source_node = np.setdiff1d(s_node, slack_node)
     non_slack_node = np.setdiff1d(np.arange(len(df['node'])), slack_node)
     gc['slack'] = slack_node
@@ -61,22 +63,22 @@ def load_ngs(filename):
     n_node = len(df['node'])
     gc['n_node'] = n_node
     gc['n_pipe'] = len(df['pipe'])
-    gc['fs'] = np.asarray(df['node']['fs'], dtype=np.float64)
-    gc['fl'] = np.asarray(df['node']['fl'], dtype=np.float64)
-    gc['delta'] = np.asarray(df['pipe']['delta'])
+    gc['fs'] = to_writable_array(df['node']['fs'], dtype=np.float64)
+    gc['fl'] = to_writable_array(df['node']['fl'], dtype=np.float64)
+    gc['delta'] = to_writable_array(df['pipe']['delta'])
 
     # loop detection and conversion
     if 'loop' in df:
         pipe_in_loop = df['loop']['loop1'] == 1
-        pinloop = np.asarray(df['loop'][pipe_in_loop]['idx'])
+        pinloop = to_writable_array(df['loop'][pipe_in_loop]['idx'])
         gc['pinloop'] = pinloop
     else:
         gc['pinloop'] = []
 
-    lam = np.asarray(df['pipe']['Friction'])
-    D = np.asarray(df['pipe']['Diameter'])
-    Piset = np.array(df['node'][slack_cond]['p'])
-    L = np.asarray(df['pipe']['Length'])
+    lam = to_writable_array(df['pipe']['Friction'])
+    D = to_writable_array(df['pipe']['Diameter'])
+    Piset = to_writable_array(df['node'][slack_cond]['p'])
+    L = to_writable_array(df['pipe']['Length'])
     va = 340
     S = np.pi * (D / 2) ** 2
     C = lam * va ** 2 * L / D / S ** 2 / (1e6 ** 2)
@@ -139,7 +141,7 @@ def load_GT(filename):
     gtc = dict()
 
     for column_name in df['GT'].columns:
-        gtc[column_name] = np.asarray(df['GT'][column_name])
+        gtc[column_name] = to_writable_array(df['GT'][column_name])
 
     return gtc
 
@@ -153,7 +155,6 @@ def load_P2G(filename):
     p2gc = dict()
 
     for column_name in df['P2G'].columns:
-        p2gc[column_name] = np.asarray(df['P2G'][column_name])
+        p2gc[column_name] = to_writable_array(df['P2G'][column_name])
 
     return p2gc
-

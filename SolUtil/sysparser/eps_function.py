@@ -5,6 +5,8 @@ from scipy.sparse import csc_array, hstack, spdiags
 from typing import Union, Dict
 from Solverz.solvers.solution import aesol
 
+from ._array_utils import to_writable_array
+
 
 def Vm_updater(Vm_pv, Vm_pq, Vm_slack):
     return np.concatenate((Vm_pv, Vm_pq, Vm_slack))
@@ -101,24 +103,24 @@ def load_mpc(file_name) -> Dict[str, Union[np.ndarray, csc_array]]:
     pv = bus['type'] == 2
     slack = bus['type'] == 3
     nb = len(bus)
-    baseMVA = np.asarray(df['setting']['baseMVA'])
+    baseMVA = to_writable_array(df['setting']['baseMVA'])
     mpc['baseMVA'] = baseMVA
-    idx_pq = np.asarray(bus[pq]['bus_i'])
+    idx_pq = to_writable_array(bus[pq]['bus_i'])
     mpc['idx_pq'] = idx_pq
-    idx_pv = np.asarray(bus[pv]['bus_i'])
+    idx_pv = to_writable_array(bus[pv]['bus_i'])
     mpc['idx_pv'] = idx_pv
-    idx_slack = np.asarray(bus[slack]['bus_i'])
+    idx_slack = to_writable_array(bus[slack]['bus_i'])
     mpc['idx_slack'] = idx_slack
-    Vm = np.asarray(bus['Vm'], dtype=float)
+    Vm = to_writable_array(bus['Vm'], dtype=float)
     mpc['Vm'] = Vm
-    Va = np.deg2rad(np.asarray(bus['Va'], dtype=float))
+    Va = np.deg2rad(to_writable_array(bus['Va'], dtype=float))
     mpc['Va'] = Va
-    Pd = np.asarray(bus['Pd'], dtype=float) / baseMVA
+    Pd = to_writable_array(bus['Pd'], dtype=float) / baseMVA
     mpc['Pd'] = Pd
-    Qd = np.asarray(bus['Qd'], dtype=float) / baseMVA
+    Qd = to_writable_array(bus['Qd'], dtype=float) / baseMVA
     mpc['Qd'] = Qd
     Pg = np.zeros((nb,), dtype=float)
-    idx_gen = np.asarray(gen['bus'])
+    idx_gen = to_writable_array(gen['bus'])
     Pg[idx_gen] = gen['Pg'] / baseMVA
     mpc['Pg'] = Pg
     Qg = np.zeros((nb,), dtype=float)
@@ -190,17 +192,17 @@ def load_mac(file_name) -> Dict[str, Union[np.ndarray, csc_array]]:
                        engine='openpyxl',
                        index_col=None
                        )
-    mpc['ra'] = np.asarray(df['ra'])
-    mpc['xd'] = np.asarray(df['xd'])
-    mpc['xdp'] = np.asarray(df['xdp'])
-    mpc['xq'] = np.asarray(df['xq'])
-    mpc['xqp'] = np.asarray(df['xqp'])
-    mpc['D'] = np.asarray(df['D'])
-    mpc['Tj'] = np.asarray(df['Tj'])
-    mpc['Tdp'] = np.asarray(df['Tdp'])
-    mpc['Tqp'] = np.asarray(df['Tqp'])
+    mpc['ra'] = to_writable_array(df['ra'])
+    mpc['xd'] = to_writable_array(df['xd'])
+    mpc['xdp'] = to_writable_array(df['xdp'])
+    mpc['xq'] = to_writable_array(df['xq'])
+    mpc['xqp'] = to_writable_array(df['xqp'])
+    mpc['D'] = to_writable_array(df['D'])
+    mpc['Tj'] = to_writable_array(df['Tj'])
+    mpc['Tdp'] = to_writable_array(df['Tdp'])
+    mpc['Tqp'] = to_writable_array(df['Tqp'])
     mpc['nm'] = mpc['Tqp'].shape[0]
-    mpc['bus'] = np.asarray(df['bus'])
+    mpc['bus'] = to_writable_array(df['bus'])
     return mpc
 
 
@@ -211,14 +213,14 @@ def load_GT(file_name) -> Dict[str, Union[np.ndarray, csc_array]]:
                        engine='openpyxl',
                        index_col=None
                        )
-    mpc['bus'] = np.asarray(df['bus'])
-    mpc['node'] = np.asarray(df['node'])
+    mpc['bus'] = to_writable_array(df['bus'])
+    mpc['node'] = to_writable_array(df['node'])
 
     mpc['ngt'] = mpc['bus'].shape[0]
     
     param_list = ['qmax', 'qmin', 'b', 'c', 'TFS', 'K1', 'K2', 'T1', 'T2', 'kp', 'ki', 'W', 'Y', 'Z', 'kNL', 'TCD', 
                   'Cop', 'A', 'B', 'C', 'D', 'E', 'TRbase', 'TG', 'Tref']
     for param in param_list:
-        mpc[param] = np.asarray(df[param])
+        mpc[param] = to_writable_array(df[param])
     
     return mpc
