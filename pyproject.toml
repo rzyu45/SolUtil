@@ -11,7 +11,14 @@ name = "SolUtil"
 #version = "0.0.1"
 dynamic = ["version"]
 dependencies = [
+    "matplotlib",
+    "networkx",
+    "numpy",
+    "openpyxl",
+    "pandas",
+    "scipy",
     "Solverz",
+    "tqdm",
     "pyomo"
 ]
 authors = [
