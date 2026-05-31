@@ -70,9 +70,14 @@ def test_pf_loopeqn_matches_scalar(case_file):
     np.testing.assert_allclose(pf_loop.iy, pf_scalar.iy, rtol=1e-6, atol=1e-6)
 
 
-def test_pf_default_is_scalar():
-    """Default formulation stays the lightweight inline scalar build, so
-    existing callers do not silently pay the LoopEqn compile cost."""
+def test_pf_default_is_loopeqn():
+    """Default formulation is the LoopEqn build (since 0.9.0)."""
     import inspect
     sig = inspect.signature(PowerFlow.__init__)
-    assert sig.parameters['loopeqn'].default is False
+    assert sig.parameters['loopeqn'].default is True
+
+
+def test_pf_scalar_path_is_deprecated(case_file):
+    """The legacy inline scalar path warns it is deprecated."""
+    with pytest.warns(DeprecationWarning):
+        PowerFlow(case_file, loopeqn=False)

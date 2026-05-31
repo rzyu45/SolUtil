@@ -1,6 +1,7 @@
 import os
 import tempfile
 import sys
+import warnings
 
 from Solverz import (Var as SolVar, Param as SolParam, Eqn, Model,
                      made_numerical, nr_method, module_printer, sin, cos,
@@ -25,25 +26,44 @@ class PowerFlow:
     mdl : dict or None
         Optional pre-built ``{'mdl': numerical_model, 'y0': Vars}`` to
         skip the symbolic build entirely.
-    loopeqn : bool, default False
+    loopeqn : bool, default True
         Formulate the polar power-flow equations as a small number of
         ``LoopEqn`` blocks over a flat full-bus ``Vm`` / ``Va`` state
         (``P_eqn`` over pv+pq, ``Q_eqn`` over pq, plus ``Vm_pin`` /
         ``Va_pin`` pinning the ref+pv magnitudes and ref angles),
         instead of expanding ``O(nb)`` scalar ``Eqn``s. The two
         formulations are algebraically identical, but the LoopEqn form
-        compiles to a handful of vector kernels rather than one per bus.
+        builds and compiles to a handful of vector kernels rather than
+        one scalar ``Eqn`` per bus, so ``create_instance`` and the
+        Jacobian assembly scale with the number of equation *blocks*
+        rather than the number of buses. This is the default since 0.9.0.
 
         ``LoopEqn`` is only supported by the Numba-JIT module path
         (``module_printer``), not by the inline ``made_numerical`` path,
-        so ``loopeqn=True`` renders a module under a temporary directory
-        and imports it. This pays a one-off Numba compile cost; the
-        default ``loopeqn=False`` keeps the lightweight inline build.
+        so the model is rendered to a temporary directory and imported.
+        This pays a one-off Numba compile cost.
+
+        ``loopeqn=False`` selects the legacy per-bus scalar inline build.
+        **It is deprecated and will be removed in a future release**; it
+        emits a ``DeprecationWarning``. The scalar build is much slower
+        to construct and lambdify on non-trivial networks and exists only
+        for backward compatibility.
     """
     def __init__(self,
                  file: str,
                  mdl=None,
-                 loopeqn: bool = False):
+                 loopeqn: bool = True):
+
+        if not loopeqn and mdl is None:
+            warnings.warn(
+                "PowerFlow(loopeqn=False) selects the legacy per-bus scalar "
+                "inline power-flow build, which is deprecated and will be "
+                "removed in a future release. It is significantly slower to "
+                "construct and lambdify than the default LoopEqn build. Drop "
+                "the loopeqn=False argument to use the LoopEqn formulation.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
 
         self.loopeqn = loopeqn
         self.Vm = None
