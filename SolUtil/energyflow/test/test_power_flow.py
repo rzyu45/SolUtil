@@ -81,3 +81,18 @@ def test_pf_scalar_path_is_deprecated(case_file):
     """The legacy inline scalar path warns it is deprecated."""
     with pytest.warns(DeprecationWarning):
         PowerFlow(case_file, loopeqn=False)
+
+
+def test_pf_two_instances_are_independent(case_file, datadir):
+    """Two PowerFlow objects in one process must not share a rendered module.
+
+    The LoopEqn build renders a module under a per-instance name. With a
+    fixed name the second instance got the first instance's F / J / y.
+    """
+    pf_a = PowerFlow(case_file)
+    pf_b = PowerFlow(case_file)
+    assert pf_a.pfmdl is not pf_b.pfmdl
+    assert pf_a.pfmdl.F is not pf_b.pfmdl.F
+    pf_b.run()
+    assert pf_b.run_succeed
+    assert pf_b.Vm.shape == (pf_b.nb,)

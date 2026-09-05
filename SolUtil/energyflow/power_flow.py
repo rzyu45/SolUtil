@@ -1,6 +1,7 @@
 import os
 import tempfile
 import sys
+import uuid
 import warnings
 
 from Solverz import (Var as SolVar, Param as SolParam, Eqn, Model,
@@ -320,11 +321,15 @@ def loopeqn_pf_mdl(pf: PowerFlow):
     """
     spf, y0 = pf.mdlpf_loopeqn()
     tmpdir = tempfile.mkdtemp(prefix='solutil_pf_loopeqn_')
-    module_name = 'pf_loopeqn_mdl'
+    # One module name per PowerFlow instance. A fixed name made every later
+    # PowerFlow() in the same process reuse the first rendered module: the
+    # package was found in sys.modules and reloaded, but reload() only
+    # re-executes __init__.py, and the cached num_func / dependency
+    # submodules kept the first case's F, J, p and y.
+    module_name = f'pf_loopeqn_mdl_{uuid.uuid4().hex[:8]}'
     module_printer(spf, y0, module_name, directory=tmpdir, jit=True).render()
     if tmpdir not in sys.path:
         sys.path.insert(0, tmpdir)
     import importlib
     mod = importlib.import_module(module_name)
-    importlib.reload(mod)
     return mod.mdl, mod.y
