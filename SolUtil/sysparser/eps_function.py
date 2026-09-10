@@ -132,13 +132,28 @@ def load_mpc(file_name) -> Dict[str, Union[np.ndarray, csc_array]]:
     return mpc
 
 
+def bus_injections(Ybus: Union[csc_array, np.ndarray], Vm: np.ndarray, Va: np.ndarray):
+    """Net complex bus injections of a voltage profile, vectorized.
+
+    With ``V = Vm * exp(1j * Va)`` the injection is ``S = V * conj(Ybus @ V)``.
+    Returns ``(P, Q)`` in per unit. ``P[i]`` is the active power that bus ``i``
+    feeds into the network, so at a slack bus ``Pg[i] = P[i] + Pd[i]`` and at
+    a slack or PV bus ``Qg[i] = Q[i] + Qd[i]``.
+
+    This replaces the element-wise double loop over ``G[i, j]`` / ``B[i, j]``
+    that scaled as ``O(n_gen * n_bus)`` sparse scalar lookups and took hours on
+    networks with tens of thousands of buses. One sparse matrix-vector product
+    gives every bus at once.
+    """
+    V = Vm * np.exp(1j * Va)
+    S = V * np.conj(Ybus @ V)
+    return S.real, S.imag
+
+
 def parse_data_post_pf(sys: dict, sol: aesol):
-    nb = sys['nb']
     Vm = sys['Vm']
     Va = sys['Va']
     Ybus = sys["Ybus"]
-    G = Ybus.real
-    B = Ybus.imag
     ref = sys["idx_slack"].tolist()
     pv = sys["idx_pv"].tolist()
     pq = sys["idx_pq"].tolist()
@@ -146,32 +161,13 @@ def parse_data_post_pf(sys: dict, sol: aesol):
     Qg = sys["Qg"]
     Pd = sys["Pd"]
     Qd = sys["Qd"]
-    npv = len(pv)
-    npq = len(pq)
     Vm[pq] = sol.y['Vm']
     Va[pv + pq] = sol.y['Va']
 
-    # update slack pg qg
-
-    for i in ref:
-        Pinj = 0
-        Vmi = Vm[i]
-        Vai = Va[i]
-        for j in range(nb):
-            Vmj = Vm[j]
-            Vaj = Va[j]
-            Pinj += Vmi * Vmj * (G[i, j] * np.cos(Vai - Vaj) + B[i, j] * np.sin(Vai - Vaj))
-        Pg[i] = Pinj + Pd[i]
-
-    for i in ref+pv:
-        Qinj = 0
-        Vmi = Vm[i]
-        Vai = Va[i]
-        for j in range(nb):
-            Vmj = Vm[j]
-            Vaj = Va[j]
-            Qinj += Vmi * Vmj * (G[i, j] * np.sin(Vai - Vaj) - B[i, j] * np.cos(Vai - Vaj))
-        Qg[i] = Qinj + Qd[i]
+    # update slack Pg and slack / PV Qg from the net bus injections
+    P, Q = bus_injections(Ybus, Vm, Va)
+    Pg[ref] = P[ref] + Pd[ref]
+    Qg[ref + pv] = Q[ref + pv] + Qd[ref + pv]
 
     sys['Vm'] = Vm
     sys['Va'] = Va

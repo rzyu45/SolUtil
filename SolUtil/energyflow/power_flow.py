@@ -1,6 +1,7 @@
 import os
 import tempfile
 import sys
+import uuid
 import warnings
 
 from Solverz import (Var as SolVar, Param as SolParam, Eqn, Model,
@@ -8,6 +9,7 @@ from Solverz import (Var as SolVar, Param as SolParam, Eqn, Model,
                      Set, LoopEqn, Sum)
 from Solverz.solvers.solution import aesol
 from SolUtil.sysparser import load_mpc
+from SolUtil.sysparser.eps_function import bus_injections
 from scipy.sparse import csc_array
 import numpy as np
 import pandas as pd
@@ -254,12 +256,9 @@ class PowerFlow:
         self.parse_data_post_pf(self.sol)
 
     def parse_data_post_pf(self, sol: aesol):
-        nb = self.nb
         Vm = self.Vm
         Va = self.Va
         Ybus = self.Ybus
-        G = Ybus.real
-        B = Ybus.imag
         ref = self.idx_slack.tolist()
         pv = self.idx_pv.tolist()
         pq = self.idx_pq.tolist()
@@ -275,27 +274,12 @@ class PowerFlow:
             Vm[pq] = sol.y['Vm']
             Va[pv + pq] = sol.y['Va']
 
-        # update slack pg qg
-
-        for i in ref:
-            Pinj = 0
-            Vmi = Vm[i]
-            Vai = Va[i]
-            for j in range(nb):
-                Vmj = Vm[j]
-                Vaj = Va[j]
-                Pinj += Vmi * Vmj * (G[i, j] * np.cos(Vai - Vaj) + B[i, j] * np.sin(Vai - Vaj))
-            Pg[i] = Pinj + Pd[i]
-
-        for i in ref + pv:
-            Qinj = 0
-            Vmi = Vm[i]
-            Vai = Va[i]
-            for j in range(nb):
-                Vmj = Vm[j]
-                Vaj = Va[j]
-                Qinj += Vmi * Vmj * (G[i, j] * np.sin(Vai - Vaj) - B[i, j] * np.cos(Vai - Vaj))
-            Qg[i] = Qinj + Qd[i]
+        # update slack Pg and slack / PV Qg from the net bus injections
+        # S = V conj(Ybus V); one sparse matrix-vector product instead of
+        # an O(n_gen * n_bus) double loop of sparse scalar lookups.
+        P, Q = bus_injections(Ybus, Vm, Va)
+        Pg[ref] = P[ref] + Pd[ref]
+        Qg[ref + pv] = Q[ref + pv] + Qd[ref + pv]
 
         self.Vm = Vm
         self.Va = Va
@@ -337,11 +321,15 @@ def loopeqn_pf_mdl(pf: PowerFlow):
     """
     spf, y0 = pf.mdlpf_loopeqn()
     tmpdir = tempfile.mkdtemp(prefix='solutil_pf_loopeqn_')
-    module_name = 'pf_loopeqn_mdl'
+    # One module name per PowerFlow instance. A fixed name made every later
+    # PowerFlow() in the same process reuse the first rendered module: the
+    # package was found in sys.modules and reloaded, but reload() only
+    # re-executes __init__.py, and the cached num_func / dependency
+    # submodules kept the first case's F, J, p and y.
+    module_name = f'pf_loopeqn_mdl_{uuid.uuid4().hex[:8]}'
     module_printer(spf, y0, module_name, directory=tmpdir, jit=True).render()
     if tmpdir not in sys.path:
         sys.path.insert(0, tmpdir)
     import importlib
     mod = importlib.import_module(module_name)
-    importlib.reload(mod)
     return mod.mdl, mod.y
