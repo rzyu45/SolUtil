@@ -12,6 +12,7 @@ name = "SolUtil"
 dynamic = ["version"]
 dependencies = [
     "matplotlib",
+    "matpowercaseframes>=2.1",
     "networkx",
     "numpy",
     "openpyxl",
