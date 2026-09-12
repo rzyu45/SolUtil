@@ -23,8 +23,11 @@ class PowerFlow:
 
     Parameters
     ----------
-    file : str
-        MATPOWER-format ``.xlsx`` case file (parsed by ``load_mpc``).
+    file : str or path
+        The case: a MATPOWER ``.m`` case file, which is read with
+        matpowercaseframes and prepared as MATPOWER ``runpf`` prepares it,
+        or a SolUtil ``.xlsx`` case file. ``load_mpc`` parses both, and the
+        ``.m`` file is much faster to read for large cases.
     mdl : dict or None
         Optional pre-built ``{'mdl': numerical_model, 'y0': Vars}`` to
         skip the symbolic build entirely.
