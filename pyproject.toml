@@ -18,7 +18,7 @@ dependencies = [
     "openpyxl",
     "pandas",
     "scipy",
-    "Solverz",
+    "Solverz>=0.11.0",
     "tqdm",
     "pyomo"
 ]
@@ -35,6 +35,9 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+
+[project.urls]
+Repository = "https://github.com/rzyu45/SolUtil"
 
 [dependency-groups]
 dev = [

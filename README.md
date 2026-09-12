@@ -14,6 +14,12 @@ print(gf.f) # get the pipe mass-flow results
 
 The required `.xlsx` data format can be found in SolUtil/energyflow/test directory for reference.
 
+## Installation
+
+```
+pip install SolUtil
+```
+
 ## Requirements
 
 This package requires the `ipopt` optimization solver. 
